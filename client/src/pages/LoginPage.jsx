@@ -11,24 +11,10 @@ import NightScene from '../components/NightScene.jsx';
    Foreground UI
    ───────────────────────────────────────────────────────────── */
 
-function LogoIcon({ size = 30 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <circle cx="15" cy="17" r="7" stroke="#fff" strokeWidth="1.6" />
-      <ellipse cx="15" cy="17" rx="13" ry="4.5" stroke="#fff" strokeWidth="1.4" transform="rotate(-20 15 17)" />
-      <path d="M26 3 L27 6 L30 7 L27 8 L26 11 L25 8 L22 7 L25 6 Z" fill="#fff" />
-    </svg>
-  );
-}
-
 function TopNav() {
   return (
     <header className="nz-nav">
-      <Link to="/login" className="nz-pill">
-        <LogoIcon />
-        <span className="nz-pill-brand">Noesis</span>
-      </Link>
-      <nav className="nz-pill nz-links">
+      <nav className="nz-links">
         <Link to="/login">Home</Link>
         <Link to="/levels">Learn</Link>
         <a href="#about">About</a>
