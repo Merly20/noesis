@@ -1,0 +1,162 @@
+.memory-visualizer {
+  display: flex;
+  gap: 2rem;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.memory-board {
+  flex: 2;
+}
+
+.tools-panel {
+  flex: 1;
+  background: #F6F8FC;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+}
+
+.array-cells {
+  display: flex;
+  gap: 0.5rem;
+  margin: 2rem 0;
+  flex-wrap: wrap;
+}
+
+.cell-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.address {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.cell {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: bold;
+  background: #fff;
+  border: 2px solid #1B2340;
+  border-radius: 8px;
+  box-shadow: 0 4px 0 #1B2340;
+  transition: all 0.1s;
+  cursor: default;
+}
+
+.cell.selectable {
+  cursor: pointer;
+}
+
+.cell.selectable:hover {
+  background: #f0f4ff;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #1B2340;
+}
+
+.cell.selectable:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1B2340;
+}
+
+.cell.dashed {
+  border: 2px dashed #ccc;
+  box-shadow: none;
+  color: #ccc;
+  background: transparent;
+}
+
+.cell.dashed:hover {
+  border-color: #2F6BFF;
+  color: #2F6BFF;
+}
+
+.tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tool-btn {
+  padding: 0.75rem;
+  border: 2px solid #1B2340;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 0 #1B2340;
+  transition: all 0.1s;
+}
+
+.tool-btn.selected {
+  background: #2F6BFF;
+  color: white;
+  border-color: #1A4EBF;
+  box-shadow: 0 2px 0 #1A4EBF;
+  transform: translateY(2px);
+}
+
+.tool-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #1B2340;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.input-group input {
+  padding: 0.75rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.primary-btn {
+  flex: 1;
+  background: #17B26A;
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: bold;
+  box-shadow: 0 4px 0 #10804b;
+  cursor: pointer;
+}
+
+.primary-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #10804b;
+}
+
+.secondary-btn {
+  flex: 1;
+  background: #fff;
+  color: #333;
+  border: 2px solid #ccc;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+}

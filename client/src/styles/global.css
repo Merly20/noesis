@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+:root {
+  --paper: #F6F8FC;
+  --ink: #1B2340;
+  --blue: #2F6BFF;
+  --mint: #17B26A;
+  --sun: #FFC93C;
+  --coral: #FF5D5D;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--paper);
+  color: var(--ink);
+}
+
+.monospace {
+  font-family: 'JetBrains Mono', monospace;
+}

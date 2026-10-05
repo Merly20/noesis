@@ -1,0 +1,173 @@
+.tutor-fab {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #1B2340;
+  color: white;
+  font-size: 1.5rem;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transition: transform 0.2s;
+}
+
+.tutor-fab:hover {
+  transform: scale(1.1);
+}
+
+.tutor-panel {
+  position: fixed;
+  bottom: 6rem;
+  right: 2rem;
+  width: 350px;
+  height: 500px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  border: 2px solid #1B2340;
+  overflow: hidden;
+  animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.tutor-header {
+  background: #1B2340;
+  color: white;
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.close-btn {
+  background: transparent;
+  color: white;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.tutor-messages {
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #F6F8FC;
+}
+
+.welcome-msg {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin: 1rem 0;
+}
+
+.message {
+  display: flex;
+  max-width: 85%;
+}
+
+.message.user {
+  align-self: flex-end;
+}
+
+.message.assistant {
+  align-self: flex-start;
+}
+
+.bubble {
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  line-height: 1.4;
+}
+
+.message.user .bubble {
+  background: #2F6BFF;
+  color: white;
+  border-bottom-right-radius: 2px;
+}
+
+.message.assistant .bubble {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-bottom-left-radius: 2px;
+  color: #1B2340;
+}
+
+.tutor-error {
+  color: #FF5D5D;
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.tutor-suggestions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  overflow-x: auto;
+  background: white;
+  border-top: 1px solid #e0e0e0;
+}
+
+.chip {
+  background: #f0f4ff;
+  color: #2F6BFF;
+  border: 1px solid #2F6BFF;
+  padding: 0.25rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.tutor-input {
+  display: flex;
+  padding: 1rem;
+  background: white;
+  gap: 0.5rem;
+}
+
+.tutor-input input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.tutor-input button {
+  background: #1B2340;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tutor-footer {
+  text-align: center;
+  padding: 0.5rem;
+  background: #fafafa;
+  border-top: 1px solid #eee;
+}
+
+.clear-btn {
+  background: transparent;
+  border: none;
+  color: #FF5D5D;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
