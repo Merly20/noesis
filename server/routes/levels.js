@@ -1,70 +1,59 @@
-const express = require('express');
-const Level = require('../models/Level');
-const Topic = require('../models/Topic');
-const Progress = require('../models/Progress');
-const { auth } = require('../middleware/auth');
-const router = new express.Router();
+import { Router } from 'express';
+import Level from '../models/Level.js';
+import Topic from '../models/Topic.js';
+import Progress from '../models/Progress.js';
+import { verifyToken } from '../middleware/auth.js';
 
-router.get('/', auth, async (req, res) => {
+const router = Router();
+
+// GET /api/levels — all levels with per-user lock state
+router.get('/', verifyToken, async (req, res) => {
   try {
-    const levels = await Level.find({ isPublished: true }).sort({ number: 1 });
-    const progress = await Progress.findOne({ userId: req.user._id });
-    
-    const unlockedLevel = progress ? progress.unlockedLevel : 1;
-    
-    const levelsWithLock = levels.map(level => ({
-      ...level.toObject(),
-      isUnlocked: level.number <= unlockedLevel
+    const [levels, progress] = await Promise.all([
+      Level.find({ isActive: true }).sort('order').lean(),
+      Progress.findOne({ userId: req.user._id }).lean(),
+    ]);
+    const unlockedLevel = progress?.unlockedLevel ?? 1;
+
+    const result = levels.map((lvl) => ({
+      ...lvl,
+      locked: lvl.number > unlockedLevel,
+      completed: lvl.number < unlockedLevel,
+      current: lvl.number === unlockedLevel,
     }));
-    
-    res.json(levelsWithLock);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.json(result);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch levels' });
   }
 });
 
-router.get('/:levelId', auth, async (req, res) => {
+// GET /api/levels/:id — single level + its topics
+router.get('/:id', verifyToken, async (req, res) => {
   try {
-    const level = await Level.findById(req.params.levelId);
+    const level = await Level.findById(req.params.id).lean();
     if (!level) return res.status(404).json({ error: 'Level not found' });
-    
-    const progress = await Progress.findOne({ userId: req.user._id });
-    const unlockedLevel = progress ? progress.unlockedLevel : 1;
-    if (level.number > unlockedLevel) return res.status(403).json({ error: 'Level is locked' });
 
-    const topics = await Topic.find({ levelId: level._id }).sort({ order: 1 });
-    res.json({ level, topics, practisedTopics: progress ? progress.practisedTopics : [] });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const [topics, progress] = await Promise.all([
+      Topic.find({ levelId: level._id, isActive: true }).sort('order').lean(),
+      Progress.findOne({ userId: req.user._id }).lean(),
+    ]);
+
+    const practicedIds = (progress?.practicedTopics ?? []).map(String);
+
+    const topicsWithStatus = topics.map((t) => ({
+      ...t,
+      practiced: practicedIds.includes(String(t._id)),
+    }));
+
+    const practiceProgress = topics.length
+      ? Math.round((practicedIds.filter(id => topics.some(t => String(t._id) === id)).length / topics.length) * 100)
+      : 0;
+
+    res.json({ level, topics: topicsWithStatus, practiceProgress });
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch level' });
   }
 });
 
-router.get('/topics/:topicId', auth, async (req, res) => {
-  try {
-    const topic = await Topic.findById(req.params.topicId);
-    if (!topic) return res.status(404).json({ error: 'Topic not found' });
-    res.json(topic);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/topics/:topicId/practice', auth, async (req, res) => {
-  try {
-    let progress = await Progress.findOne({ userId: req.user._id });
-    if (!progress) {
-      progress = new Progress({ userId: req.user._id });
-    }
-    
-    if (!progress.practisedTopics.includes(req.params.topicId)) {
-      progress.practisedTopics.push(req.params.topicId);
-      await progress.save();
-    }
-    
-    res.json({ success: true, practisedTopics: progress.practisedTopics });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-module.exports = router;
+export default router;

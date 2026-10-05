@@ -1,0 +1,374 @@
+/* ============================================================
+   NightScene — living environment layered over the painting.
+   All coordinates are % of the painted scene (1376x768 art), so
+   every effect stays pinned to the artwork at any screen size.
+
+   WIND: one gentle breeze blowing RIGHT -> LEFT (matches the
+   direction the girl's hair already flows in the painting).
+
+   Technique for painted elements (clouds, hair, leaves):
+   a copy of the same painting, soft-masked to one region, is
+   moved with GPU transforms. Because the copy is pixel-identical
+   at rest, the artwork itself is unchanged — only motion is added.
+   ============================================================ */
+
+/* ── Base: masked copy of the painting ───────────────────────── */
+.fx-img {
+  position: absolute;
+  inset: 0;
+  background: url('/noesis-bg.jpg') center / 100% 100% no-repeat;
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* ============================================================
+   1. CLOUDS — three depth layers drifting with the wind
+   ============================================================ */
+
+/* Back: high sky clouds — slowest */
+.fx-clouds-back {
+  -webkit-mask-image:
+    radial-gradient(ellipse 15% 15% at 6% 12%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 14% 7% at 31% 6%, #000 45%, transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 15% 15% at 6% 12%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 14% 7% at 31% 6%, #000 45%, transparent 100%);
+  animation: fxCloudBack 36s ease-in-out infinite;
+}
+@keyframes fxCloudBack {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-45px, -4px, 0); }
+}
+
+/* Middle: big cloud mass under the moon + mid-sky wisp */
+.fx-clouds-mid {
+  -webkit-mask-image:
+    radial-gradient(ellipse 12% 14% at 84% 42%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 9% 5% at 56% 34%, #000 40%, transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 12% 14% at 84% 42%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 9% 5% at 56% 34%, #000 40%, transparent 100%);
+  animation: fxCloudMid 24s ease-in-out infinite;
+  animation-delay: -6s;
+}
+@keyframes fxCloudMid {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-60px, 5px, 0); }
+}
+
+/* Front: sea of clouds below the city — fastest */
+.fx-clouds-front {
+  -webkit-mask-image:
+    radial-gradient(ellipse 12% 8% at 65% 86%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 8% 6% at 42% 77%, #000 40%, transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 12% 8% at 65% 86%, #000 45%, transparent 100%),
+    radial-gradient(ellipse 8% 6% at 42% 77%, #000 40%, transparent 100%);
+  animation: fxCloudFront 16s ease-in-out infinite;
+  animation-delay: -4s;
+}
+@keyframes fxCloudFront {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50%      { transform: translate3d(-70px, -5px, 0); }
+}
+
+/* ── Wind wisps: soft mist that travels continuously R -> L ── */
+.fx-zone { position: absolute; inset: 0; }
+
+/* keep mist off the foreground towers */
+.fx-zone-mid {
+  -webkit-mask-image: linear-gradient(90deg, transparent 5%, #000 11%, #000 89%, transparent 95%);
+  mask-image: linear-gradient(90deg, transparent 5%, #000 11%, #000 89%, transparent 95%);
+}
+/* low fog: also never passes in front of the girl */
+.fx-zone-low {
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 5%, #000 11%, #000 89%, transparent 95%),
+    radial-gradient(ellipse 10% 18% at 22% 72%, transparent 70%, #000 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 5%, #000 11%, #000 89%, transparent 95%),
+    radial-gradient(ellipse 10% 18% at 22% 72%, transparent 70%, #000 100%);
+  mask-composite: intersect;
+}
+
+/* the track is scene-wide, so translate % = % of the scene */
+.fx-track {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  animation: fxWind linear infinite;
+  will-change: transform;
+}
+@keyframes fxWind {
+  from { transform: translate3d(100%, 0, 0); }
+  to   { transform: translate3d(-35%, 0, 0); }
+}
+.fx-wisp {
+  width: 30%;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 22% 45% at 22% 58%, rgba(245, 222, 255, 0.9), transparent 100%),
+    radial-gradient(ellipse 26% 50% at 46% 45%, rgba(255, 226, 246, 0.85), transparent 100%),
+    radial-gradient(ellipse 22% 42% at 68% 58%, rgba(232, 212, 255, 0.85), transparent 100%),
+    radial-gradient(ellipse 16% 34% at 86% 62%, rgba(240, 216, 255, 0.7), transparent 100%);
+  animation: fxBob 9s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes fxBob {
+  from { transform: translate3d(0, -4px, 0); }
+  to   { transform: translate3d(0, 4px, 0); }
+}
+
+/* ============================================================
+   2. STARS — individual drift + rare twinkle + shooting stars
+   ============================================================ */
+.fx-star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 4px 1px rgba(235, 230, 255, 0.75);
+  opacity: var(--o, 0.8);
+  /* two independent animations: opacity (twinkle) + translate (drift) */
+  animation:
+    fxTwinkle var(--tw, 8s) ease-in-out var(--twd, 0s) infinite,
+    fxStarDrift var(--dr, 20s) ease-in-out var(--drd, 0s) infinite;
+  will-change: opacity, translate;
+}
+/* mostly steady; a short dip-and-sparkle late in each cycle,
+   so only a few stars twinkle at any moment */
+@keyframes fxTwinkle {
+  0%, 70%, 100% { opacity: var(--o, 0.8); }
+  80%           { opacity: 0.12; }
+  89%           { opacity: 1; }
+}
+@keyframes fxStarDrift {
+  0%, 100% { translate: 0 0; }
+  50%      { translate: var(--dx, 3px) var(--dy, 0px); }
+}
+
+.fx-shoot {
+  position: absolute;
+  width: 140px;
+  height: 1.5px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #fff 0%, rgba(220, 215, 255, 0.6) 25%, transparent 100%);
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  transform-origin: left center;
+  animation: fxShoot var(--d, 20s) ease-out var(--delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+/* visible only ~6% of the cycle -> rare and brief */
+@keyframes fxShoot {
+  0%   { opacity: 0;   transform: rotate(-24deg) translate3d(0, 0, 0) scaleX(0.3); }
+  1%   { opacity: 0.9; }
+  6%   { opacity: 0;   transform: rotate(-24deg) translate3d(-340px, 0, 0) scaleX(1); }
+  100% { opacity: 0;   transform: rotate(-24deg) translate3d(-340px, 0, 0) scaleX(1); }
+}
+
+/* ============================================================
+   3. MOON — breathing glow, halo, brightness (no movement)
+   ============================================================ */
+.fx-moon-glow,
+.fx-moon-halo,
+.fx-moon-bright {
+  position: absolute;
+  left: 68.1%;
+  top: 17.6%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+.fx-moon-glow {
+  width: 32%;
+  background: radial-gradient(circle, rgba(255, 245, 255, 0.5) 20%, rgba(215, 200, 255, 0.2) 40%, transparent 66%);
+  animation: fxMoonGlow 12s ease-in-out infinite;
+}
+@keyframes fxMoonGlow {
+  0%, 100% { opacity: 0.45; transform: translate(-50%, -50%) scale(0.95); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+}
+.fx-moon-halo {
+  width: 24%;
+  background: radial-gradient(circle, transparent 66%, rgba(225, 215, 255, 0.22) 71%, transparent 80%);
+  animation: fxMoonHalo 17s ease-in-out infinite;
+  animation-delay: -4s;
+}
+@keyframes fxMoonHalo {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.97); }
+  50%      { opacity: 0.9;  transform: translate(-50%, -50%) scale(1.05); }
+}
+.fx-moon-bright {
+  width: 16.6%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, rgba(255, 250, 255, 0.15) 60%, transparent 72%);
+  animation: fxMoonBright 9s ease-in-out infinite;
+}
+@keyframes fxMoonBright {
+  0%, 100% { opacity: 0; }
+  50%      { opacity: 0.6; }
+}
+
+/* ============================================================
+   4. HAIR — two strand groups swaying in the wind
+   (pivot at the head, so only the loose hair moves)
+   ============================================================ */
+.fx-hair-a {
+  -webkit-mask-image: radial-gradient(ellipse 5.2% 4.8% at 19% 66%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 5.2% 4.8% at 19% 66%, #000 45%, transparent 100%);
+  transform-origin: 22% 64.5%;
+  animation: fxHairA 3.4s ease-in-out infinite;
+}
+.fx-hair-b {
+  -webkit-mask-image: radial-gradient(ellipse 4.2% 4.8% at 17.5% 72%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 4.2% 4.8% at 17.5% 72%, #000 45%, transparent 100%);
+  transform-origin: 22% 65%;
+  animation: fxHairB 2.8s ease-in-out infinite;
+  animation-delay: -0.9s;
+}
+@keyframes fxHairA {
+  0%, 100% { transform: rotate(0deg) skewY(0deg); }
+  25%      { transform: rotate(4deg) skewY(-1.5deg); }
+  50%      { transform: rotate(1.5deg) skewY(0.5deg); }
+  75%      { transform: rotate(5deg) skewY(-2deg); }
+}
+@keyframes fxHairB {
+  0%, 100% { transform: rotate(0deg) skewX(0deg); }
+  30%      { transform: rotate(5.5deg) skewX(-3deg); }
+  60%      { transform: rotate(2deg) skewX(1deg); }
+  85%      { transform: rotate(6deg) skewX(-2deg); }
+}
+
+/* ============================================================
+   5. LEAVES / PLANTS — swaying with the same breeze
+   ============================================================ */
+.fx-leaf-l {
+  -webkit-mask-image: radial-gradient(ellipse 7% 13% at 4.5% 80%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 7% 13% at 4.5% 80%, #000 45%, transparent 100%);
+  transform-origin: 1% 100%;
+  animation: fxLeaf 7s ease-in-out infinite;
+}
+.fx-leaf-r {
+  -webkit-mask-image: radial-gradient(ellipse 8% 14% at 94% 84%, #000 45%, transparent 100%);
+  mask-image: radial-gradient(ellipse 8% 14% at 94% 84%, #000 45%, transparent 100%);
+  transform-origin: 99% 100%;
+  animation: fxLeaf 8.6s ease-in-out infinite;
+  animation-delay: -2.3s;
+}
+.fx-plant-a {
+  -webkit-mask-image: radial-gradient(ellipse 2.5% 3.5% at 34.5% 87%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 2.5% 3.5% at 34.5% 87%, #000 40%, transparent 100%);
+  transform-origin: 34.5% 90%;
+  animation: fxPlant 4.6s ease-in-out infinite;
+}
+.fx-plant-b {
+  -webkit-mask-image: radial-gradient(ellipse 3% 5% at 46.5% 95%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 3% 5% at 46.5% 95%, #000 40%, transparent 100%);
+  transform-origin: 46.5% 100%;
+  animation: fxPlant 5.4s ease-in-out infinite;
+  animation-delay: -1.7s;
+}
+/* negative rotation = tops bend left, with the wind */
+@keyframes fxLeaf {
+  0%, 100% { transform: rotate(0deg); }
+  30%      { transform: rotate(-1.4deg); }
+  55%      { transform: rotate(-0.5deg); }
+  80%      { transform: rotate(-1.8deg); }
+}
+@keyframes fxPlant {
+  0%, 100% { transform: rotate(0deg); }
+  40%      { transform: rotate(-3deg); }
+  70%      { transform: rotate(-1deg); }
+}
+
+/* Fireflies / floating embers carried by the wind */
+.fx-firefly {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffd98a;
+  box-shadow: 0 0 6px 2px rgba(255, 190, 90, 0.7);
+  opacity: 0;
+  animation: fxFirefly var(--d, 12s) ease-in-out var(--delay, 0s) infinite;
+  will-change: transform, opacity;
+}
+@keyframes fxFirefly {
+  0%   { opacity: 0;   transform: translate3d(0, 0, 0); }
+  20%  { opacity: 0.9; }
+  50%  { transform: translate3d(-24px, -10px, 0); }
+  80%  { opacity: 0.7; }
+  100% { opacity: 0;   transform: translate3d(-46px, -4px, 0); }
+}
+
+/* ============================================================
+   6. LANTERNS — candle-like glow
+   ============================================================ */
+.fx-lantern,
+.fx-flame {
+  position: absolute;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+.fx-lantern {
+  background: radial-gradient(circle, rgba(255, 210, 120, 0.95) 0%, rgba(255, 150, 50, 0.45) 32%, transparent 70%);
+  animation: fxCandle var(--d, 3s) ease-in-out var(--delay, 0s) infinite;
+}
+.fx-flame {
+  background: radial-gradient(circle, rgba(255, 248, 220, 1) 0%, rgba(255, 195, 100, 0.5) 45%, transparent 70%);
+  animation: fxFlame var(--d, 1.4s) ease-in-out var(--delay, 0s) infinite;
+}
+/* irregular steps = natural firelight flicker */
+@keyframes fxCandle {
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(0.9); }
+  10%      { opacity: 0.85; transform: translate(-50%, -50%) scale(1.02); }
+  18%      { opacity: 0.6;  transform: translate(-50%, -50%) scale(0.93); }
+  32%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.12); }
+  44%      { opacity: 0.7;  transform: translate(-50%, -50%) scale(0.97); }
+  52%      { opacity: 0.9;  transform: translate(-50%, -50%) scale(1.06); }
+  66%      { opacity: 0.5;  transform: translate(-50%, -50%) scale(0.9); }
+  78%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.1); }
+  90%      { opacity: 0.68; transform: translate(-50%, -50%) scale(0.96); }
+}
+@keyframes fxFlame {
+  0%, 100% { opacity: 0.4;  transform: translate(-50%, -50%) scale(0.85); }
+  25%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.1); }
+  45%      { opacity: 0.55; transform: translate(-50%, -50%) scale(0.92); }
+  70%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* ============================================================
+   7. CITY LIGHTS — a few windows flicker at random
+   ============================================================ */
+.fx-city {
+  position: absolute;
+  border-radius: 50%;
+  background: #ffd98a;
+  box-shadow: 0 0 6px 2px rgba(255, 180, 80, 0.85);
+  opacity: 0.15;
+  mix-blend-mode: screen;
+  animation: fxCity var(--d, 5s) ease-in-out var(--delay, 0s) infinite;
+  will-change: opacity;
+}
+@keyframes fxCity {
+  0%, 35%, 70%, 100% { opacity: 0.15; }
+  42%                { opacity: 1; }
+  50%                { opacity: 0.4; }
+  58%                { opacity: 0.9; }
+}
+
+/* ============================================================
+   Reduced motion: the ambient animations are slow and gentle, so
+   they stay on (the owner wants them visible even with Windows
+   "Animation effects" off). Only the quick shooting stars are hidden.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .fx-shoot { display: none; }
+}

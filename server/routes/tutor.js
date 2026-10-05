@@ -1,108 +1,115 @@
-const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
-const TutorChat = require('../models/TutorChat');
-const { auth } = require('../middleware/auth');
-const router = new express.Router();
+import { Router } from 'express';
+import Anthropic from '@anthropic-ai/sdk';
+import TutorChat from '../models/TutorChat.js';
+import Settings from '../models/Settings.js';
+import { verifyToken } from '../middleware/auth.js';
+import { tutorLimiter } from '../middleware/rateLimiter.js';
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'sk-dummy-key',
-});
+const router = Router();
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Basic rate limiting (in-memory for demo, should use Redis for prod)
-const rateLimits = new Map();
-const RATE_LIMIT_WINDOW = 60 * 60 * 1000; // 1 hour
-const MAX_MESSAGES = 20;
+const SYSTEM_PROMPT = `You are Noesis, a friendly and playful AI tutor for a DSA (Data Structures and Algorithms) learning game.
 
-const checkRateLimit = (userId) => {
-  const now = Date.now();
-  let userRecord = rateLimits.get(userId) || { count: 0, windowStart: now };
-  
-  if (now - userRecord.windowStart > RATE_LIMIT_WINDOW) {
-    userRecord = { count: 1, windowStart: now };
-  } else {
-    userRecord.count++;
-  }
-  
-  rateLimits.set(userId, userRecord);
-  return userRecord.count <= MAX_MESSAGES;
-};
+Your personality:
+- Warm, encouraging, and a little bit funny (but not cringe)
+- You LOVE when learners have "aha!" moments
+- You use simple words, short sentences, and real-life analogies
+- You give Socratic hints when learners are stuck (ask questions, don't just give answers)
 
-router.get('/history/:topicId', auth, async (req, res) => {
+Your rules:
+- Only answer questions about DSA, arrays, algorithms, time/space complexity, and this platform
+- For off-topic requests, politely say "I only know DSA things! Ask me about arrays, complexity, or your current challenge 🎯"
+- NEVER give more than 150 words in a single response — keep it punchy
+- Always explain complexity in simple English (e.g., "O(n) means if you have 100 items, expect 100 steps")
+- Use a small code example only when it genuinely helps
+- Celebrate progress with enthusiasm!
+
+EXAM INTEGRITY RULE: If the context says the learner is in an EXAM, you may explain concepts and give strategic hints, but you must NEVER reveal the exact sequence of operations (insert, delete, update) needed to solve the specific exam task. Redirect to concept understanding instead.`;
+
+// POST /api/tutor
+router.post('/', verifyToken, tutorLimiter, async (req, res) => {
   try {
-    const chat = await TutorChat.findOne({ userId: req.user._id, topicId: req.params.topicId });
-    res.json(chat ? chat.messages : []);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-router.post('/', auth, async (req, res) => {
-  try {
-    const { topicId, message, contextData, isExam } = req.body;
-
-    if (!message || message.length > 500) {
-      return res.status(400).json({ error: 'Message must be between 1 and 500 characters' });
+    // Check if tutor is enabled
+    const setting = await Settings.findOne({ key: 'tutorEnabled' }).lean();
+    if (setting && setting.value === false) {
+      return res.status(503).json({ error: 'The AI tutor is currently disabled by the admin. Check back soon!' });
     }
 
-    if (!checkRateLimit(req.user._id.toString())) {
-      return res.status(429).json({ error: 'Rate limit exceeded (20 messages/hour). Please try again later.' });
-    }
+    const { message, topicId, context } = req.body;
+    if (!message || typeof message !== 'string')
+      return res.status(400).json({ error: 'message is required' });
+    if (message.length > 500)
+      return res.status(400).json({ error: 'Message too long (max 500 chars)' });
 
-    // Fetch or create chat history
-    let chat = await TutorChat.findOne({ userId: req.user._id, topicId });
+    // Build context string for Claude
+    let contextStr = '';
+    if (context?.level) contextStr += `\nCurrent Level: ${context.level}`;
+    if (context?.topic) contextStr += `\nCurrent Topic: ${context.topic}`;
+    if (context?.isExam) contextStr += `\n⚠️ EXAM MODE: Do NOT reveal exact operations for exam tasks.`;
+    if (context?.currentArray) contextStr += `\nLearner's current array: [${context.currentArray}]`;
+    if (context?.operations?.length) contextStr += `\nRecent operations: ${context.operations.join(', ')}`;
+    if (context?.steps) contextStr += `\nSteps used so far: ${context.steps}`;
+
+    // Get or create chat history
+    let chat = await TutorChat.findOne({ userId: req.user._id, topicId: topicId || null });
     if (!chat) {
-      chat = new TutorChat({ userId: req.user._id, topicId, messages: [] });
+      chat = new TutorChat({ userId: req.user._id, topicId: topicId || null, messages: [] });
     }
 
-    // Add user message to DB
-    chat.messages.push({ role: 'user', content: message });
-    if (chat.messages.length > 40) { // keep last 40 (20 pairs)
-      chat.messages = chat.messages.slice(-40);
-    }
-    
-    // Build context prompt
-    const systemPrompt = `You are Noesis, a friendly, playful, beginner-level AI tutor for a Data Structures & Algorithms platform.
-Keep your answers short, use small examples, and explain time/space complexity in simple terms.
-Stay on topic (DSA and this platform). Politely decline off-topic requests. Use Socratic hints when the learner is stuck.
-${isExam ? 'CRITICAL: The user is currently taking an EXAM. You may explain concepts and give hints, but NEVER give the exact solution, code, or operations needed to solve the current task.' : ''}
+    // Build messages for Anthropic (last 20 capped)
+    const history = chat.messages.slice(-18).map(m => ({ role: m.role, content: m.content }));
+    history.push({ role: 'user', content: contextStr ? `[Context]${contextStr}\n\n${message}` : message });
 
-Current Context:
-${contextData ? JSON.stringify(contextData, null, 2) : 'No context provided.'}
-`;
-
-    // Convert history for Anthropic API
-    const apiMessages = chat.messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
-
+    // Call Anthropic
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20240620',
+      model: 'claude-sonnet-4-5',
       max_tokens: 300,
-      system: systemPrompt,
-      messages: apiMessages
+      system: SYSTEM_PROMPT,
+      messages: history,
     });
 
-    const assistantMsg = response.content[0].text;
+    const reply = response.content[0]?.text ?? 'Hmm, I got confused. Try asking again?';
 
-    // Add assistant response to DB
-    chat.messages.push({ role: 'assistant', content: assistantMsg });
+    // Save to DB (cap at 20 messages)
+    chat.messages.push({ role: 'user', content: message, ts: new Date() });
+    chat.messages.push({ role: 'assistant', content: reply, ts: new Date() });
+    if (chat.messages.length > 20) {
+      chat.messages = chat.messages.slice(-20);
+    }
     await chat.save();
 
-    res.json({ response: assistantMsg });
-  } catch (error) {
-    console.error('Tutor API Error:', error);
-    res.status(500).json({ error: 'The AI tutor is currently unavailable. Please try again later.' });
+    res.json({ reply });
+  } catch (err) {
+    if (err.status === 401) return res.status(500).json({ error: 'AI tutor API key invalid. Tell your admin!' });
+    if (err.status === 429) return res.status(429).json({ error: 'AI is overloaded right now. Try again in a minute!' });
+    console.error('[TUTOR]', err.message);
+    res.status(500).json({ error: 'Tutor is having a brain freeze. Try again shortly!' });
   }
 });
 
-router.delete('/history/:topicId', auth, async (req, res) => {
+// GET /api/tutor/history?topicId=...
+router.get('/history', verifyToken, async (req, res) => {
   try {
-    await TutorChat.findOneAndDelete({ userId: req.user._id, topicId: req.params.topicId });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    const { topicId } = req.query;
+    const chat = await TutorChat.findOne({ userId: req.user._id, topicId: topicId || null }).lean();
+    res.json({ messages: chat?.messages ?? [] });
+  } catch {
+    res.status(500).json({ error: 'Failed to load chat history' });
   }
 });
 
-module.exports = router;
+// DELETE /api/tutor/history?topicId=...
+router.delete('/history', verifyToken, async (req, res) => {
+  try {
+    const { topicId } = req.query;
+    await TutorChat.findOneAndUpdate(
+      { userId: req.user._id, topicId: topicId || null },
+      { $set: { messages: [] } }
+    );
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Failed to clear history' });
+  }
+});
+
+export default router;

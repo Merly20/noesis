@@ -1,32 +1,25 @@
-const express = require('express');
-const Progress = require('../models/Progress');
-const { auth } = require('../middleware/auth');
-const router = new express.Router();
+import { Router } from 'express';
+import Progress from '../models/Progress.js';
+import { verifyToken } from '../middleware/auth.js';
 
-router.get('/', auth, async (req, res) => {
+const router = Router();
+
+// GET /api/progress — current user's full progress
+router.get('/', verifyToken, async (req, res) => {
   try {
     const progress = await Progress.findOne({ userId: req.user._id })
-      .populate('completedLevels', 'number title')
-      .populate('examHistory.taskId', 'points maxSteps');
-      
+      .populate('practicedTopics', 'title levelId')
+      .lean();
+
     if (!progress) {
-      return res.json({
-        unlockedLevel: 1,
-        completedLevels: [],
-        examHistory: [],
-        points: req.user.points
-      });
+      // Create empty progress if missing
+      const fresh = await Progress.create({ userId: req.user._id });
+      return res.json(fresh);
     }
-    
-    res.json({
-      unlockedLevel: progress.unlockedLevel,
-      completedLevels: progress.completedLevels,
-      examHistory: progress.examHistory,
-      points: req.user.points
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.json(progress);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch progress' });
   }
 });
 
-module.exports = router;
+export default router;

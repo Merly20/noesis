@@ -1,34 +1,26 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
-const auth = async (req, res, next) => {
+export const verifyToken = async (req, res, next) => {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+  const token = header.split(' ')[1];
   try {
-    const token = req.header('Authorization')?.replace('Bearer ', '');
-    if (!token) return res.status(401).json({ error: 'Authentication required' });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
-    const user = await User.findById(decoded.userId);
-    if (!user) throw new Error();
-
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).lean();
+    if (!user) return res.status(401).json({ error: 'User not found' });
     req.user = user;
-    req.token = token;
     next();
-  } catch (error) {
-    res.status(401).json({ error: 'Please authenticate.' });
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 
-const adminAuth = async (req, res, next) => {
-  try {
-    await auth(req, res, () => {
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
-      next();
-    });
-  } catch (error) {
-    res.status(401).json({ error: 'Please authenticate.' });
+export const requireAdmin = (req, res, next) => {
+  if (req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
   }
+  next();
 };
-
-module.exports = { auth, adminAuth };

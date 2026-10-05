@@ -1,11 +1,13 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const levelSchema = new mongoose.Schema({
-  number: { type: Number, required: true, unique: true },
-  title: { type: String, required: true },
-  description: { type: String, required: true },
-  badge: { type: String }, // badge image name/url
-  isPublished: { type: Boolean, default: false }
-});
+  number: { type: Number, required: true, unique: true, min: 1, max: 10 },
+  title: { type: String, required: true, trim: true },
+  description: { type: String, trim: true },
+  icon: { type: String, default: '📦' },
+  isActive: { type: Boolean, default: true },
+  order: { type: Number, required: true },
+  comingSoon: { type: Boolean, default: false },
+}, { timestamps: true });
 
-module.exports = mongoose.model('Level', levelSchema);
+export default mongoose.model('Level', levelSchema);

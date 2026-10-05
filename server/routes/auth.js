@@ -1,49 +1,81 @@
-const express = require('express');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { auth } = require('../middleware/auth');
-const router = new express.Router();
+import { Router } from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import Progress from '../models/Progress.js';
+import { verifyToken } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimiter.js';
 
-router.post('/register', async (req, res) => {
+const router = Router();
+
+const signToken = (user) =>
+  jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+// POST /api/auth/register
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
-    
-    // Check if user exists
-    const existing = await User.findOne({ $or: [{ email }, { username }] });
-    if (existing) {
-      return res.status(400).json({ error: 'Username or email already exists' });
+    if (!username || !email || !password)
+      return res.status(400).json({ error: 'username, email and password are required' });
+    if (password.length < 6)
+      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+
+    const exists = await User.findOne({ $or: [{ email: email.toLowerCase() }, { username }] });
+    if (exists) {
+      const field = exists.email === email.toLowerCase() ? 'email' : 'username';
+      return res.status(409).json({ error: `That ${field} is already taken. Try another!` });
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, passwordHash });
-    await user.save();
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ username, email, passwordHash });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret');
-    res.status(201).json({ user: { username, email, role: user.role, points: user.points }, token });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    // Init progress
+    await Progress.create({ userId: user._id });
+
+    const token = signToken(user);
+    res.status(201).json({ token, user });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ error: 'Username or email already exists' });
+    }
+    if (err.name === 'ValidationError') {
+      const msg = Object.values(err.errors).map(e => e.message).join('; ');
+      return res.status(400).json({ error: msg });
+    }
+    res.status(500).json({ error: 'Registration failed. Our hamsters are tired.' });
   }
 });
 
-router.post('/login', async (req, res) => {
+// POST /api/auth/login
+router.post('/login', authLimiter, async (req, res) => {
   try {
+    // `email` field may contain either an email or a username
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+    if (!email || !password)
+      return res.status(400).json({ error: 'name and password are required' });
 
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+    const id = String(email).trim();
+    const user = await User.findOne(
+      id.includes('@') ? { email: id.toLowerCase() } : { username: id }
+    );
+    if (!user) return res.status(401).json({ error: 'Invalid name or password' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret');
-    res.json({ user: { username: user.username, email, role: user.role, points: user.points }, token });
-  } catch (error) {
-    res.status(400).json({ error: error.message });
+    const valid = await user.comparePassword(password);
+    if (!valid) return res.status(401).json({ error: 'Invalid name or password' });
+
+    const token = signToken(user);
+    res.json({ token, user });
+  } catch {
+    res.status(500).json({ error: 'Login failed. Try again?' });
   }
 });
 
-router.get('/me', auth, async (req, res) => {
-  res.json({ user: { username: req.user.username, email: req.user.email, role: req.user.role, points: req.user.points } });
+// GET /api/auth/me
+router.get('/me', verifyToken, async (req, res) => {
+  const user = await User.findById(req.user._id).lean();
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const { passwordHash, ...safeUser } = user;
+  res.json(safeUser);
 });
 
-module.exports = router;
+export default router;

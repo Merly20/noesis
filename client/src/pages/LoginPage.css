@@ -1,0 +1,339 @@
+/* ============================================================
+   NOESIS - Night-sky login page (plain CSS, no Tailwind)
+   ============================================================ */
+
+.nz-page {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background: #141a4a;
+  font-family: 'Poppins', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: #fff;
+}
+
+/* - Scene: keeps the painting's aspect ratio and covers the viewport,
+      so overlay elements (moon glow, lanterns) stay pinned to the art - */
+.nz-scene {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 1.7917));
+  height: max(100vh, calc(100vw / 1.7917));
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  overflow: hidden;
+}
+.nz-bg {
+  position: absolute;
+  inset: 0;
+  background: url('/noesis-bg.jpg') center / 100% 100% no-repeat;
+}
+
+/* Environment animations live in src/components/NightScene.css */
+
+/* - Foreground content - */
+.nz-content {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Top nav */
+.nz-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 2.75rem;
+}
+.nz-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1.3rem;
+  border-radius: 999px;
+  background: rgba(20, 22, 70, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-decoration: none;
+}
+.nz-pill-brand {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.nz-links { gap: 2rem; }
+.nz-links a {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.25s, text-shadow 0.25s;
+}
+.nz-links a:hover { color: #fff; text-shadow: 0 0 10px rgba(200, 190, 255, 0.9); }
+
+/* Main split */
+.nz-main {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 3rem;
+  padding: 3vh 7vw 4vh 11vw;
+}
+
+/* Hero (left) */
+.nz-hero {
+  margin-top: 6vh;
+  max-width: 460px;
+  text-align: center;
+}
+.nz-title-wrap { position: relative; display: inline-block; }
+.nz-orbit {
+  position: absolute;
+  left: -14%;
+  top: -10%;
+  width: 128%;
+  height: 120%;
+  overflow: visible;
+  pointer-events: none;
+}
+.nz-title {
+  position: relative;
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(3.2rem, 6.4vw, 5.6rem);
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(180, 170, 255, 0.55), 0 2px 10px rgba(10, 10, 50, 0.4);
+}
+.nz-spark {
+  position: absolute;
+  right: -6%;
+  top: -12%;
+  width: 26px;
+  height: 26px;
+}
+.nz-sub {
+  margin: 0.4rem 0 0;
+  font-size: clamp(0.8rem, 1.25vw, 1.05rem);
+  letter-spacing: 0.42em;
+  color: rgba(225, 225, 255, 0.92);
+  text-transform: uppercase;
+}
+.nz-tag {
+  margin-top: 1.6rem;
+  line-height: 1.25;
+}
+.nz-tag-1 {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.9vw, 1.55rem);
+  color: #b9c3ff;
+}
+.nz-tag-2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 2.3vw, 1.95rem);
+  color: #a9b6ff;
+}
+.nz-tag-2 b { color: #fff; font-weight: 600; }
+.nz-tag-2 em { font-style: normal; color: #e4c8ff; font-weight: 600; }
+.nz-swoosh { display: block; margin: 0.4rem auto 0; width: 70%; height: 14px; }
+
+/* - Glass card (right) - */
+.nz-card {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 6vh;
+  padding: 0 1.7rem 1.6rem;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(245, 244, 255, 0.86), rgba(232, 232, 252, 0.8));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 20px 50px rgba(20, 15, 70, 0.35), 0 0 40px rgba(190, 180, 255, 0.25);
+  color: #1d2156;
+  /* static — only the background environment animates */
+}
+@keyframes nzCardGlow {
+  0%, 100% { box-shadow: 0 20px 50px rgba(20, 15, 70, 0.35), 0 0 30px rgba(190, 180, 255, 0.18); }
+  50%      { box-shadow: 0 20px 50px rgba(20, 15, 70, 0.35), 0 0 48px rgba(200, 190, 255, 0.35); }
+}
+
+.nz-tabs {
+  display: flex;
+  margin: 0 -1.7rem 1.4rem;
+  border-bottom: 1px solid rgba(80, 90, 170, 0.15);
+}
+.nz-tab {
+  position: relative;
+  flex: 1;
+  padding: 1.05rem 0 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6a6f9a;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.25s;
+}
+.nz-tab.active { color: #3b44c9; font-weight: 600; }
+.nz-tab-bar {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px;
+  background: #4650e0;
+}
+
+.nz-head { text-align: center; margin-bottom: 1.3rem; }
+.nz-head h2 { margin: 0; font-size: 1.35rem; font-weight: 700; color: #1d2156; letter-spacing: -0.01em; }
+.nz-head p  { margin: 0.3rem 0 0; font-size: 0.8rem; color: #555b88; }
+
+.nz-form { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.nz-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(120, 130, 210, 0.18);
+  border-radius: 10px;
+  transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+}
+.nz-field:focus-within {
+  background: #fff;
+  border-color: rgba(110, 100, 240, 0.6);
+  box-shadow: 0 0 0 4px rgba(120, 110, 255, 0.15), 0 0 18px rgba(140, 120, 255, 0.2);
+}
+.nz-field.err { border-color: rgba(230, 80, 110, 0.6); }
+.nz-field .nz-ico { position: absolute; left: 0.85rem; color: #3d4380; pointer-events: none; }
+.nz-field input {
+  width: 100%;
+  padding: 0.78rem 2.6rem 0.78rem 2.6rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.83rem;
+  color: #1d2156;
+  font-family: inherit;
+}
+.nz-field input::placeholder { color: #6e7398; }
+.nz-eye {
+  position: absolute;
+  right: 0.75rem;
+  display: flex;
+  padding: 0.2rem;
+  border: none;
+  background: none;
+  color: #5b6094;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.nz-eye:hover { color: #3b44c9; }
+.nz-err { margin: -0.35rem 0 0 0.25rem; font-size: 0.72rem; color: #d63c63; font-weight: 500; }
+
+.nz-btn-primary {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #4a4fe0, #5a5ff0);
+  color: #fff;
+  font-size: 0.88rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(74, 79, 224, 0.35);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+}
+.nz-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+  box-shadow: 0 10px 24px rgba(74, 79, 224, 0.45);
+}
+.nz-btn-primary:hover:not(:disabled) .nz-arrow { transform: translateX(3px); }
+.nz-arrow { transition: transform 0.3s ease; }
+.nz-btn-primary:disabled { opacity: 0.7; cursor: wait; }
+
+.nz-or {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1rem 0;
+  font-size: 0.75rem;
+  color: #6a6f9a;
+}
+.nz-or::before, .nz-or::after { content: ''; flex: 1; height: 1px; background: rgba(80, 90, 170, 0.18); }
+
+.nz-btn-ghost {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid rgba(70, 80, 200, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+  color: #1d2156;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+}
+.nz-btn-ghost:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(90, 90, 220, 0.18);
+}
+
+.nz-note {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #4e5383;
+}
+
+/* - Responsive - */
+@media (max-width: 1024px) {
+  .nz-main { padding: 2vh 5vw 4vh; gap: 2rem; }
+}
+@media (max-width: 820px) {
+  .nz-nav { padding: 1rem 1.25rem; }
+  .nz-links { gap: 1.1rem; }
+  .nz-main {
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 1.25rem 3rem;
+    gap: 1.5rem;
+  }
+  .nz-hero { margin-top: 2vh; }
+  .nz-card { margin-top: 0; max-width: 380px; }
+}
+@media (max-width: 420px) {
+  .nz-pill-brand { font-size: 1.1rem; }
+  .nz-links a { font-size: 0.85rem; }
+  .nz-card { padding: 0 1.2rem 1.3rem; }
+  .nz-tabs { margin: 0 -1.2rem 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nz-card { animation: none !important; }
+}
