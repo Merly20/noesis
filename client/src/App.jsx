@@ -18,6 +18,8 @@ import LeaderboardPage from './pages/LeaderboardPage.jsx';
 import ProgressPage from './pages/ProgressPage.jsx';
 import AdminPage    from './pages/AdminPage.jsx';
 import SandboxPage  from './pages/SandboxPage.jsx';
+import DSADashboardPage from './pages/DSADashboardPage.jsx';
+import ExplanationPage from './pages/ExplanationPage.jsx';
 
 // Route guards
 const PrivateRoute = ({ children }) => {
@@ -58,6 +60,8 @@ function AnimatedRoutes() {
         <Route path="/progress"              element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
         {/* Public — free memory space, usable without login */}
         <Route path="/sandbox"               element={<SandboxPage />} />
+        <Route path="/dashboard"             element={<DSADashboardPage />} />
+        <Route path="/explanation"           element={<ExplanationPage />} />
         <Route path="/admin"                 element={<AdminRoute><AdminPage /></AdminRoute>} />
 
         {/* Fallback */}

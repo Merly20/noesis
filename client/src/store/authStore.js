@@ -35,6 +35,14 @@ export const useAuthStore = create((set, get) => ({
     }
   },
 
+  guestLogin: () => {
+    const mockToken = "guest_token_123";
+    const mockUser = { username: "Guest Explorer", role: "guest" };
+    localStorage.setItem('noesis_token', mockToken);
+    set({ token: mockToken, user: mockUser });
+    return { success: true };
+  },
+
   logout: () => {
     localStorage.removeItem('noesis_token');
     set({ user: null, token: null, error: null });

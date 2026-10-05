@@ -190,18 +190,19 @@
   animation: fxMoonGlow 12s ease-in-out infinite;
 }
 @keyframes fxMoonGlow {
-  0%, 100% { opacity: 0.45; transform: translate(-50%, -50%) scale(0.95); }
-  50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+  0%, 100% { opacity: 0.45; transform: translate(-50%, -50%); }
+  50%      { opacity: 1;    transform: translate(-50%, -50%); }
 }
 .fx-moon-halo {
-  width: 24%;
-  background: radial-gradient(circle, transparent 66%, rgba(225, 215, 255, 0.22) 71%, transparent 80%);
-  animation: fxMoonHalo 17s ease-in-out infinite;
-  animation-delay: -4s;
+  width: 14%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 40%),
+              radial-gradient(circle at 70% 70%, rgba(240, 230, 255, 0.3) 0%, transparent 40%);
+  animation: fxMoonInside 8s ease-in-out infinite alternate;
+  animation-delay: -2s;
 }
-@keyframes fxMoonHalo {
-  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.97); }
-  50%      { opacity: 0.9;  transform: translate(-50%, -50%) scale(1.05); }
+@keyframes fxMoonInside {
+  0%   { transform: translate(-52%, -48%) rotate(-10deg) scale(0.85); opacity: 0.4; }
+  100% { transform: translate(-48%, -52%) rotate(10deg) scale(1.1); opacity: 0.9; }
 }
 .fx-moon-bright {
   width: 16.6%;
@@ -209,8 +210,8 @@
   animation: fxMoonBright 9s ease-in-out infinite;
 }
 @keyframes fxMoonBright {
-  0%, 100% { opacity: 0; }
-  50%      { opacity: 0.6; }
+  0%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  50%      { opacity: 0.6; transform: translate(-50%, -50%) scale(1.02); }
 }
 
 /* ============================================================
